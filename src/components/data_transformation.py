@@ -22,12 +22,9 @@ class DataTransformation:
 
     def get_data_transformer_object(self):
         try:
-            numerical_columns = [
-                "bedrooms", "bathrooms", "sqft_living", "sqft_lot",
-                "floors", "waterfront", "view", "condition", "sqft_above",
-                "sqft_basement", "yr_built", "yr_renovated"
-            ]
-            categorical_columns = ["street", "city", "statezip", "country"]
+            numerical_columns = ["bedrooms", "bathrooms", "sqft_living", "sqft_lot", "floors", "condition"]
+            categorical_columns = ["city"]
+
 
             num_pipeline = Pipeline([
                 ('imputer', SimpleImputer(strategy='median')),
