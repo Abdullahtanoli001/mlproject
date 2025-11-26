@@ -1,0 +1,45 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Logs
+*.log
+logs/
+
+# Datasets (bohot heavy hotay hain)
+data/
+datasets/
+*.csv
+*.xlsx
+*.parquet
+*.h5
+*.pkl
+*.zip
+
+# Model weights / checkpoints (heavy)
+checkpoints/
+models/
+*.pt
+*.pth
+*.h5
+*.pkl
+*.joblib
+*.bin
+
+# Jupyter cache
+.ipynb_checkpoints/

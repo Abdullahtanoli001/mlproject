@@ -1,25 +1,35 @@
 import sys
 import pandas as pd
-
+import os
 from src.exception import CustomException
 from src.utils import load_object
 
+
+# ---------------------------------------------------
+# OLD MLOps PredictPipeline CLASS (keep it)
+# ---------------------------------------------------
 class PredictPipeline:
     def __init__(self):
         pass
 
-    def predict(self,features):
+    def predict(self, features):
         try:
-            model_path='artifacts\model.pkl'
-            preprocessor_path='artifacts\preprocessor.pkl'
-            model=load_object(file_path=model_path)
-            preprocessor=load_object(file_path=preprocessor_path)
-            data_scaled=preprocessor.transform(features)
-            preds=model.predict(data_scaled)
+            model_path = os.path.join("artifacts", "model.pkl")
+            preprocessor_path = os.path.join("artifacts", "preprocessor.pkl")
+
+            model = load_object(file_path=model_path)
+            preprocessor = load_object(file_path=preprocessor_path)
+
+            data_scaled = preprocessor.transform(features)
+            preds = model.predict(data_scaled)
             return preds
         except Exception as e:
-            raise CustomException(e,sys)
+            raise CustomException(e, sys)
 
+
+# ---------------------------------------------------
+# OLD MLOps CustomData CLASS (keep it)
+# ---------------------------------------------------
 class CustomData:
     def __init__(self,
         date: str,
@@ -80,10 +90,32 @@ class CustomData:
                 'street': [self.street],
                 'city': [self.city],
                 'statezip': [self.statezip],
-                'country': [self.country]
+                'country': [self.country],
             }
 
             return pd.DataFrame(custom_data_input_dict)
         except Exception as e:
             raise CustomException(e, sys)
-            
+
+
+# ---------------------------------------------------
+# 👉 NEW SIMPLE FUNCTION FOR FASTAPI
+# ---------------------------------------------------
+def predict_pipeline(features: dict):
+    """
+    FastAPI uses this simple function.
+    It converts dict → DataFrame → preprocess → predict → return number.
+    """
+
+    model_path = "artifacts/model.pkl"
+    preprocessor_path = "artifacts/preprocessor.pkl"
+
+    model = load_object(model_path)
+    preprocessor = load_object(preprocessor_path)
+
+    df = pd.DataFrame([features])  # Convert dict into DataFrame
+
+    transformed = preprocessor.transform(df)
+    prediction = model.predict(transformed)[0]
+
+    return float(prediction)

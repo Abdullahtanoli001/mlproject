@@ -7,4 +7,13 @@ catboost
 xgboost
 dill
 flask
+mlflow
+psycopg2-binary
+python-dotenv
+SQLAlchemy
+fastapi
+uvicorn
+pymysql
+passlib[bcrypt]
+python-jose
 # -e .

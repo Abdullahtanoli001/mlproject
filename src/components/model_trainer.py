@@ -1,47 +1,60 @@
+# import dagshub
+# dagshub.init(
+#     repo_owner='Abdullahtanoli001',
+#     repo_name='mlproject',
+#     mlflow=True
+# )
+
+import mlflow
+import mlflow.sklearn
+
 import os
 import sys
-import pandas as pd
 import numpy as np
-
 from dataclasses import dataclass
 
-from catboost import CatBoostRegressor
-from sklearn.ensemble import (
-    AdaBoostRegressor,
-    GradientBoostingRegressor,
-    RandomForestRegressor,
-)
+from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import r2_score
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import (
+    RandomForestRegressor,
+    GradientBoostingRegressor,
+    AdaBoostRegressor
+)
 from sklearn.neighbors import KNeighborsRegressor
 from xgboost import XGBRegressor
-from sklearn.tree import DecisionTreeRegressor
+from catboost import CatBoostRegressor
 
 from src.exception import CustomException
 from src.logger import logging
-
-from src.utils import save_object,evaluate_models
-
+from src.utils import evaluate_models, save_object
 
 
 @dataclass
 class ModelTrainerConfig:
-    trained_model_file_path=os.path.join('artifacts',"model.pkl")
+    trained_model_file_path = os.path.join("artifacts", "model.pkl")
+
 
 class ModelTrainer:
     def __init__(self):
-        self.model_trainer_config=ModelTrainerConfig()
+        self.model_trainer_config = ModelTrainerConfig()
 
+    def eval_metrics(self, actual, pred):
+        rmse = np.sqrt(mean_squared_error(actual, pred))
+        mae = mean_absolute_error(actual, pred)
+        r2 = r2_score(actual, pred)
+        return rmse, mae, r2
 
-    def initiate_model_trainer(self,train_array,test_array):
+    def initiate_model_trainer(self, train_array, test_array):
         try:
-            logging.info("Split training and test input data")
+            logging.info("Splitting train/test")
+
             X_train, y_train, X_test, y_test = (
                 train_array[:, :-1],
                 train_array[:, -1],
                 test_array[:, :-1],
-                test_array[:, -1]
-)
+                test_array[:, -1],
+            )
 
             models = {
                 "Random Forest": RandomForestRegressor(),
@@ -49,74 +62,77 @@ class ModelTrainer:
                 "Gradient Boosting": GradientBoostingRegressor(),
                 "Linear Regression": LinearRegression(),
                 "XGBRegressor": XGBRegressor(),
-                "CatBoosting Regressor": CatBoostRegressor(verbose=False),
-                "AdaBoost Regressor": AdaBoostRegressor(),
+                "CatBoost": CatBoostRegressor(verbose=False),
+                "AdaBoost": AdaBoostRegressor(),
             }
-            
-            params={
+
+            params = {
                 "Decision Tree": {
-                    'criterion':['squared_error', 'friedman_mse', 'absolute_error', 'poisson'],
-                    # 'splitter':['best','random'],
-                    # 'max_features':['sqrt','log2'],
+                    "criterion": ['squared_error', 'friedman_mse', 'absolute_error']
                 },
-                "Random Forest":{
-                    # 'criterion':['squared_error', 'friedman_mse', 'absolute_error', 'poisson'],
-                 
-                    # 'max_features':['sqrt','log2',None],
-                    'n_estimators': [8,16,32,64,128,256]
+                "Random Forest": {
+                    "n_estimators": [8, 16, 32, 64, 128]
                 },
-                "Gradient Boosting":{
-                    # 'loss':['squared_error', 'huber', 'absolute_error', 'quantile'],
-                    'learning_rate':[.1,.01,.05,.001],
-                    'subsample':[0.6,0.7,0.75,0.8,0.85,0.9],
-                    # 'criterion':['squared_error', 'friedman_mse'],
-                    # 'max_features':['auto','sqrt','log2'],
-                    'n_estimators': [8,16,32,64,128,256]
+                "Gradient Boosting": {
+                    "learning_rate": [0.1, 0.01, 0.05],
+                    "subsample": [0.7, 0.8, 0.9],
+                    "n_estimators": [32, 64, 128]
                 },
-                "Linear Regression":{},
-                "XGBRegressor":{
-                    'learning_rate':[.1,.01,.05,.001],
-                    'n_estimators': [8,16,32,64,128,256]
+                "Linear Regression": {},
+                "XGBRegressor": {
+                    "learning_rate": [0.1, 0.01, 0.05],
+                    "n_estimators": [32, 64, 128]
                 },
-                "CatBoosting Regressor":{
-                    'depth': [6,8,10],
-                    'learning_rate': [0.01, 0.05, 0.1],
-                    'iterations': [30, 50, 100]
+                "CatBoost": {
+                    "depth": [6, 8],
+                    "learning_rate": [0.01, 0.05],
+                    "iterations": [30, 50]
                 },
-                "AdaBoost Regressor":{
-                    'learning_rate':[.1,.01,0.5,.001],
-                    # 'loss':['linear','square','exponential'],
-                    'n_estimators': [8,16,32,64,128,256]
+                "AdaBoost": {
+                    "learning_rate": [0.1, 0.01, 0.5],
+                    "n_estimators": [32, 64, 128]
                 }
-                
             }
 
-
-
-
-
-            model_report:dict=evaluate_models(X_train=X_train,y_train=y_train,X_test=X_test,y_test=y_test,models=models,param=params)
-
-            best_model_score = max(sorted(model_report.values()))
-
-            best_model_name = list(model_report.keys())[
-                list(model_report.values()).index(best_model_score)
-            ]
+            # Evaluate all models
+            model_report: dict = evaluate_models(
+                X_train=X_train, y_train=y_train,
+                X_test=X_test, y_test=y_test,
+                models=models, param=params
+            )
+            print("Model Report: ",model_report)
+            # Best model + score
+            best_model_name = max(model_report, key=model_report.get)
             best_model = models[best_model_name]
+            best_score = model_report[best_model_name]
+            best_params = params.get(best_model_name, {})
 
-            if best_model_score<0.6:
-                raise CustomException("No best model found")
-            logging.info(f"Best model on both training and testing dataset")
+            logging.info(f"BEST MODEL = {best_model_name}, Score = {best_score}")
 
+            # Setup MLflow for DagsHub
+            # mlflow.set_tracking_uri("https://dagshub.com/Abdullahtanoli001/mlproject.mlflow")
+
+            # with mlflow.start_run():
+
+            #     mlflow.log_param("best_model", best_model_name)
+            #     mlflow.log_param("best_params", best_params)
+            #     mlflow.log_metric("r2_score", best_score)
+
+            #     # Avoid registry errors
+            #     mlflow.set_registry_uri("file:///tmp/mlruns")
+
+            #     mlflow.sklearn.log_model(
+            #         sk_model=best_model,
+            #         artifact_path="model"
+            #     )
+
+            # Save model locally
             save_object(
                 file_path=self.model_trainer_config.trained_model_file_path,
-                obj=best_model
+                obj=best_model,
             )
 
-            predicted = best_model.predict(X_test)
+            return best_score
 
-            r2_square = r2_score(y_test, predicted)
-            return r2_square
         except Exception as e:
-            raise CustomException(e,sys)
-            
+            raise CustomException(e, sys)
