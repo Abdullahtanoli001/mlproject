@@ -16,4 +16,5 @@ uvicorn
 pymysql
 passlib[bcrypt]
 python-jose
+pytest
 # -e .
